@@ -1,0 +1,126 @@
+Hugging faces
+
+pip install transformers torch aiogram
+    
+
+
+
+
+from aiogram import Bot, Dispatcher, types
+from aiogram.utils import executor
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+# Substitua pelo seu token do Telegram
+TELEGRAM_TOKEN = "SEU_TELEGRAM_TOKEN"
+
+# Configure o modelo
+MODEL_NAME = "gpt2"  # Substitua por outro modelo da Hugging Face, se preferir
+tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
+
+bot = Bot(token=TELEGRAM_TOKEN)
+dp = Dispatcher(bot)
+
+# Função para processar mensagens
+@dp.message_handler()
+async def handle_message(message: types.Message):
+    user_message = message.text
+
+    try:
+        # Tokeniza e gera a resposta
+        inputs = tokenizer.encode(user_message, return_tensors="pt")
+        outputs = model.generate(inputs, max_length=150, num_return_sequences=1, pad_token_id=tokenizer.eos_token_id)
+        bot_response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+        await message.answer(bot_response)
+    except Exception as e:
+        await message.answer(f"Erro: {e}")
+
+# Mensagem inicial
+@dp.message_handler(commands=['start'])
+async def start(message: types.Message):
+    await message.answer("Olá! Sou um bot de IA usando Hugging Face. Envie uma mensagem para começarmos!")
+
+# Inicia o bot
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
+
+
+TESTAR: python bot_huggingface.py
+
+
+
+
+
+
+
+
+2 Alternativa:
+
+pip install aiogram transformers torch
+
+
+from aiogram import Bot, Dispatcher, types
+from aiogram.utils import executor
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import torch
+
+# 1. Configure os Tokens do Telegram e o Modelo da Hugging Face
+TELEGRAM_TOKEN = "SEU_TELEGRAM_TOKEN"  # Substitua pelo seu token do BotFather
+MODEL_NAME = "gpt2"  # Nome do modelo Hugging Face (pode ser "EleutherAI/gpt-neo-125M", etc.)
+
+# 2. Carregue o modelo e o tokenizer
+# O tokenizer processa o texto para que o modelo entenda.
+tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
+
+# Inicialize o bot e o despachante do Telegram
+bot = Bot(token=TELEGRAM_TOKEN)
+dp = Dispatcher(bot)
+
+# 3. Função para lidar com mensagens recebidas
+@dp.message_handler()
+async def handle_message(message: types.Message):
+    user_message = message.text  # Mensagem enviada pelo usuário
+    await message.answer("Processando sua mensagem...")  # Resposta inicial para o usuário
+
+    try:
+        # **Geração de resposta usando o modelo Hugging Face**
+        # 3.1. Codifique a mensagem do usuário para tokens que o modelo entende
+        inputs = tokenizer.encode(user_message, return_tensors="pt")
+
+        # 3.2. Gere uma resposta (controle o tamanho com max_length)
+        outputs = model.generate(
+            inputs,
+            max_length=150,
+            num_return_sequences=1,
+            pad_token_id=tokenizer.eos_token_id,
+            temperature=0.7,  # Controla a aleatoriedade (mais baixo = mais conservador)
+            top_k=50,         # Limita o número de palavras possíveis por token
+            top_p=0.9         # Nucleus sampling para maior controle de diversidade
+        )
+
+        # 3.3. Decodifique os tokens gerados para uma string
+        bot_response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+        # 3.4. Envie a resposta de volta ao usuário
+        await message.answer(bot_response)
+
+    except Exception as e:
+        # Responda em caso de erro
+        await message.answer(f"Desculpe, ocorreu um erro: {e}")
+
+# 4. Função para lidar com o comando /start
+@dp.message_handler(commands=['start'])
+async def start(message: types.Message):
+    await message.answer("Olá! Sou um bot de IA usando um modelo da Hugging Face. Envie qualquer mensagem para começar!")
+
+# 5. Inicialize o bot
+if __name__ == '__main__':
+    print("Bot está rodando... Pressione Ctrl+C para sair.")
+    executor.start_polling(dp, skip_updates=True)
+
+
+
+
+TESTAR: python bot_huggingface.py
